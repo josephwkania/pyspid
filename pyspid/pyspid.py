@@ -9,9 +9,9 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class PySpid:
-    def __init__(self, alt: float, az: float, port: str = "/dev/ttyUSB0"):
-        self.altitude = alt
-        self.azimuth = az
+    def __init__(self, go_to_alt: float, go_to_az: float, port: str = "/dev/ttyUSB0"):
+        self.go_to_altitude = go_to_alt
+        self.go_to_azimuth = go_to_az
         self.port = port
 
     @property
@@ -30,9 +30,31 @@ class PySpid:
         logging.debug("Set port to %s", port_str)
 
     @property
-    def altitude(self):
-        return self._altitude
+    def go_to_altitude(self):
+        return self._go_to_altitude
 
-    @altitude.setter
-    def altitude(self, alt):
-        pass
+    @go_to_altitude.setter
+    def go_to_altitude(self, alt):
+        if not 0 <= alt <= 180:
+            logging.warning(
+                "%f is outside [0,180], to to alt staying at %f",
+                alt,
+                self.go_to_altitude,
+            )
+        else:
+            self._go_to_alt = alt
+
+    @property
+    def go_to_azimuth(self, az):
+        return self._go_to_azimuth
+
+    @go_to_azimuth.setter
+    def go_to_azimuth(self, az):
+        if not 0 <= az <= 360:
+            logging.warning(
+                "%f is outside [0,180], to to alt staying at %f",
+                az,
+                self.go_to_azimuth,
+            )
+        else:
+            self._go_to_azimuth = az
