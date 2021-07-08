@@ -2,9 +2,18 @@
 """
 This is the object that communicates with the rotator.
 
-get_location() -dget 
+get_location() - gets the current pointing
+get_response() - talks to the rotator, keeps trying for
+                 10 attempts or until a repsonce of the
+                 correct length
+go_to() - send the rotator to this postion
+stop() - stop the rotator where ever it is
+end() - end the serial connection to the rotator
+        and exit
+
 Based on ALFARAS.py by ALFARadio, which implements
 Program_format-Komunicacji-2005-08-10-p2.pdf
+also see https://web.archive.org/web/20160401023247/http://ryeng.name/blog/3
 
 This is published under GPL-v3, which states
 "THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
@@ -18,12 +27,13 @@ GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
 USE OR INABILITY TO USE THE PROGRAM"
 
 You should test this program before using it. I have only tested this
-with one SPID rotator. 
+with one SPID rotator.
 Behavior might be different for different models/versions.
 """
 import logging
 import os
-import sys
+
+# import sys
 from time import sleep
 from typing import Tuple
 
@@ -217,4 +227,4 @@ class PySpid:
         """
         logging.debug("Closing port %s and exiting", self._port)
         self.serial_obj.close()  # close the port
-        sys.exit()
+        # sys.exit()  $ probably don't want to exit
