@@ -237,5 +237,6 @@ class SpidTracker:
         Nicely Terminates the loop and closes the port.
         """
         logging.info("Endpoint called, ending loop, closing port.")
+        self.pyspid_obj.stop()
         self.update = False
         self.pyspid_obj.end()
