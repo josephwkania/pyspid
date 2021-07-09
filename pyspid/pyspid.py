@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 This is the object that communicates with the rotator.
+Property:
+    port - the port to connect to
 
-get_location() - gets the current pointing
-get_response() - talks to the rotator, keeps trying for
-                 10 attempts or until a repsonce of the
-                 correct length
-go_to() - send the rotator to this postion
-stop() - stop the rotator where ever it is
-end() - end the serial connection to the rotator
-        and exit
+Functions:
+    get_location() - gets the current pointing
+    get_response() - talks to the rotator, keeps trying for
+                     10 attempts or until a repsonce of the
+                     correct length
+    go_to() - send the rotator to this postion
+    stop() - stop the rotator where ever it is
+    end() - end the serial connection to the rotator
+            and exit
 
 Based on ALFARAS.py by ALFARadio, which implements
 Program_format-Komunicacji-2005-08-10-p2.pdf
@@ -32,10 +35,8 @@ Behavior might be different for different models/versions.
 """
 import logging
 import os
-
-# import sys
+from collections import namedtuple
 from time import sleep
-from typing import Tuple
 
 import serial
 
@@ -50,6 +51,10 @@ class PySpid:
     """
 
     def __init__(self, port: str = "/dev/ttyUSB0"):
+        """
+        args:
+            port - The port to which the rotator is connected too
+        """
         # go_to_alt: float, go_to_az: float,
         # self.go_to_altitude = go_to_alt
         # self.go_to_elevation = go_to_elivation
@@ -109,7 +114,7 @@ class PySpid:
     #     else:
     #         self._go_to_azimuth = az
 
-    def get_location(self) -> Tuple[float, float]:
+    def get_location(self) -> namedtuple:
         """
         This function talks to the rotator and gets the location.
         """
@@ -137,7 +142,9 @@ class PySpid:
             response[5],
             response[10],
         )
-        return self._az, self._el
+
+        alt_az_tuple = namedtuple("current_Alt_Az", ("Alt, Az"))
+        return alt_az_tuple(self._az, self._el)
 
     def get_response(self):
         """

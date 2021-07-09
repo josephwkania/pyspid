@@ -1,6 +1,21 @@
 #!/usr/bin/env python3
 """
-Tells SPID to track astronomical coordinates
+Tells SPID to track astronomical coordinates.
+Gives current pointing into in Altitude & Azimuth,
+Right Ascension & Declination, and Galactic Longitude and Latitude.
+
+Properities:
+    current_alt_az - gives the current alt & az
+    current_ra_dec - Current Right Ascension and Declination
+    current_l_b - current galactic Longitude and Latitude
+    on_source - If the antenna is on source (and tracking)
+
+Functions:
+    _tracker - Tracks a celestial coordinate, called if
+               RA and Dec are None
+    _update_location - Updates telescope location, called if
+                       RA or Dec are None.
+    end - Ends the loop and closes the serial port.
 """
 import logging
 import threading
@@ -18,6 +33,9 @@ from pyspid import PySpid
 class SpidTracker:
     """
     Make the SPID rotator track a celestial object.
+    Get and stores pointing info, which it can
+    report in Horizontal, Equatorial and Galactic
+    coordinate systems.
     """
 
     def __init__(
@@ -31,6 +49,28 @@ class SpidTracker:
         cadence: float = 30,
         port: str = "/dev/ttyUSB0",
     ):
+        """
+        args:
+            lat - Latitude of telescope in degrees
+                  Southern Hemisphere - remember the negative
+
+            lon - Longitude of telesdcope in degrees
+                  Western Hemisphere - remember the negative
+
+            height - height above sea leavel in meters
+
+            ra - Right assentation to track in decimal degrees.
+                 If None, does not move telescope
+
+            dec - Decimation to track in decimal degrees
+
+            tolerance - Pointing tolerance to maintain, in degrees
+
+            cadence - How often to check the pointing, in seconds
+
+            port - Port to talk to the rotator
+
+        """
         self.pyspid_obj = PySpid(port)
         self.update = True
         self.on_source = False
@@ -64,32 +104,32 @@ class SpidTracker:
             thread.start()
 
     @property
-    def current_alt_az(self):
+    def current_alt_az(self) -> namedtuple:
         """
-        The current Altitude and Azimuth in degrees
+        The current Altitude and Azimuth in degrees.
         """
         alt_az_tuple = namedtuple("current_Alt_Az", ("Alt, Az"))
         return alt_az_tuple(self.current_alt, self.current_az)
 
     @property
-    def current_ra_dec(self):
+    def current_ra_dec(self) -> namedtuple:
         """
-        The current Right ascension and Declination in degrees
+        The current Right Ascension and Declination in degrees.
         """
         current_time = Time(datetime.now())
         alt_az = AltAz(location=self.location, obstime=current_time)
         telescope_pointing = SkyCoord(
             az=self.current_az * u.degree, alt=self.current_alt * u.degree, frame=alt_az
         )
-        ra_dec_tuple = namedtuple("current_ra_dec", ("RA", "Dec"))
+        ra_dec_tuple = namedtuple("current_RA_Dec", ("RA", "Dec"))
         return ra_dec_tuple(
             telescope_pointing.icrs.ra.deg, telescope_pointing.icrs.dec.deg
         )
 
     @property
-    def current_l_b(self):
+    def current_l_b(self) -> namedtuple:
         """
-        The current Galactic Longitude and Latitude in degrees
+        The current Galactic Longitude and Latitude in degrees.
         """
         current_time = Time(datetime.now())
         alt_az = AltAz(location=self.location, obstime=current_time)
@@ -101,11 +141,39 @@ class SpidTracker:
             telescope_pointing.galactic.l.deg, telescope_pointing.galactic.b.deg
         )
 
+    @property
+    def on_souce(self):
+        """
+        Return the on source variable. This is true when the antenna is
+        within twice the tolerance, (as should happen when the antenna is tracking)
+        """
+        return self.on_source
+
     def _tracker(
         self, location: object, tolerance: float = 2.0, cadence: int = 30
     ) -> None:
         """
-        Tracks the requestied position
+        Tracks the requestied position.
+
+        args:
+            location - Astropy location object for the telescope
+
+            tolerance - Move the telescope if the beam is this many degrees from the
+                        target
+
+            cadence - how often to check the telescope position, in seconds.
+
+        This function loops while self.update == True,
+        everytime it loops it checks the separation between the antenna and the source
+        If this separation is greater than tolerance, this will send a command to move
+        move the antenna will be in cadence seconds. I did this to try and keep the main
+        lobe on source longer and to minimize the amounts of slews needed.
+
+        If the antenna is twice the tolerance, self.on_source gets set to false.
+        This will send the corridantes a total of three times to try and
+        go back on source, is they does not happen, the loop terminates.
+        I did this so it does not contiguously try to move past the mechanical
+        limits, etc.
         """
         off_source_count = 0
         while self.update:
@@ -158,7 +226,7 @@ class SpidTracker:
 
     def _update_location(self, cadence: int = 30) -> None:
         """
-        Updates pointing location without moving the telescope
+        Updates pointing location without moving the telescope.
         """
         while self.update:
             self.current_az, self.current_alt = self.pyspid_obj.get_location()
@@ -166,7 +234,7 @@ class SpidTracker:
 
     def end(self) -> None:
         """
-        Nicely Terminates the program
+        Nicely Terminates the loop and closes the port.
         """
         logging.info("Endpoint called, ending loop, closing port.")
         self.update = False
