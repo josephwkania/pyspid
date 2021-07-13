@@ -206,7 +206,7 @@ class SpidTracker:
                     az_future,
                     cadence,
                 )
-                # self.pyspid_obj.go_to(az=az_future, el=alt_future)
+                self.pyspid_obj.go_to(az=az_future, el=alt_future)
             elif separation > 2 * tolerance:
                 logging.warning(
                     "Target-Telescope separation is %.1f, 2x what it should be",
